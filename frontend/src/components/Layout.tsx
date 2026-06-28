@@ -97,7 +97,9 @@ export default function Layout({ children, onLogout }: LayoutProps) {
         </div>
       </nav>
       <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">{children}</div>
+        <div key={location.pathname} className="animate-fadeIn">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">{children}</div>
+        </div>
       </main>
     </div>
   );

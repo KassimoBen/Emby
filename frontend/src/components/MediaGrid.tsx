@@ -9,7 +9,7 @@ interface MediaGridProps {
 export default function MediaGrid({ items, isLoading }: MediaGridProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      <div className="perspective-1024 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {Array.from({ length: 12 }).map((_, i) => (
           <div key={i} className="card animate-pulse">
             <div className="aspect-[2/3] bg-gray-800" />
@@ -36,7 +36,7 @@ export default function MediaGrid({ items, isLoading }: MediaGridProps) {
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+    <div className="perspective-1024 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
       {items.map((media, i) => (
         <div key={media.id} className="animate-fadeIn" style={{ animationDelay: `${(i % 12) * 50}ms`, animationFillMode: 'backwards' }}>
           <MediaCard media={media} />

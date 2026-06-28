@@ -42,3 +42,55 @@
 .animate-fadeIn {
   animation: fadeIn 0.4s ease-out;
 }
+
+/* 3D Transform Utilities */
+.perspective-1024 {
+  perspective: 1024px;
+}
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+.transition-3d {
+  transition: transform 0.5s ease;
+}
+.hover-3d:hover {
+  transform: rotateY(5deg) rotateX(3deg) translateZ(10px);
+}
+.lift-2 {
+  transform: translateZ(20px);
+}
+
+/* Hover Lift */
+.hover-lift {
+  transition: transform 0.4s ease, opacity 0.3s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-4px);
+}
+
+/* Fade Out */
+@keyframes fadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(12px); }
+}
+.animate-fadeOut {
+  animation: fadeOut 0.3s ease-in forwards;
+}
+
+/* Slide In Right */
+@keyframes slideInRight {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-slideIn {
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Reduce Motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

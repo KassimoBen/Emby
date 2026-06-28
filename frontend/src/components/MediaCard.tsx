@@ -40,7 +40,7 @@ export default function MediaCard({ media }: MediaCardProps) {
 
   return (
     <Link to={`/detail/${media.id}`} className="card group relative">
-      <div className="aspect-[2/3] bg-gray-800 relative overflow-hidden rounded-t-xl">
+      <div className="preserve-3d transition-3d hover-3d aspect-[2/3] bg-gray-800 relative overflow-hidden rounded-t-xl">
         {posterUrl ? (
           <img
             src={posterUrl}
