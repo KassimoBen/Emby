@@ -1,0 +1,152 @@
+Cahier des Charges : Serveur Multimédia Auto-Hébergé avec Bibliothèque Locale
+1. Introduction & Contexte
+La gestion d'une bibliothèque multimédia personnelle (films, séries, musique) est devenue un défi complexe face à la multiplication des formats et des sources de métadonnées. Des solutions comme Plex, Jellyfin ou Emby existent, mais présentent des limitations : coût des fonctionnalités avancées, dépendance à des serveurs externes pour l'authentification, ou restrictions sur le téléchargement hors-ligne .
+
+L'idée de ce projet s'inspire du concept de fsmirror (filesystem mirroring), un outil de gestion de métadonnées basé sur le principe de "miroir" du système de fichiers . L'objectif est de construire une application qui réplique ce principe pour une bibliothèque multimédia : le serveur agit comme un miroir de tes fichiers locaux, enrichit automatiquement leurs métadonnées via des API externes, et expose le tout via une interface web moderne avec possibilité de téléchargement local pour les clients.
+
+Les solutions comme Mediabox MCP, Mediarr ou Home Movie Server montrent qu'il est possible d'orchestrer un écosystème complet (Jellyfin, Radarr, Sonarr, qBittorrent) en quelques commandes . Ce projet proposera une approche unifiée, focalisée sur l'indexation d'une bibliothèque déjà existante sur le serveur.
+
+2. Problématique de Recherche
+Comment concevoir un serveur multimédia auto-hébergé qui indexe une bibliothèque locale existante, enrichit automatiquement ses métadonnées via des sources externes (TMDB, MusicBrainz), et permet aux clients de consulter et télécharger les fichiers localement, tout en offrant des performances satisfaisantes et une interface utilisateur intuitive ?
+
+Cette question englobe plusieurs sous-problématiques techniques et de recherche :
+
+Indexation et Identification : Comment identifier efficacement un film, une série ou un morceau à partir d'un nom de fichier parfois ambigu ?
+
+Enrichissement des Métadonnées : Comment intégrer des sources externes (TMDB pour les films/séries, MusicBrainz pour la musique) de manière fiable  ?
+
+Téléchargement et Streaming : Comment permettre aux clients de télécharger localement les fichiers tout en gérant la bande passante et les droits d'accès ?
+
+Performance : Comment garantir un temps de réponse acceptable avec une bibliothèque de plusieurs milliers d'œuvres ?
+
+3. Objectifs du Projet
+3.1. Objectif Principal
+Développer une application web "self-hosted" fonctionnelle qui permet à un utilisateur de :
+
+Définir un dossier sur le serveur contenant sa bibliothèque multimédia.
+
+Lancer un scan automatique qui identifie les fichiers (films, séries, musique).
+
+Récupérer automatiquement les métadonnées (affiche, description, note, casting, etc.) via des API publiques .
+
+Naviguer dans son catalogue via une interface web moderne (grille, recherche, filtres).
+
+Télécharger les fichiers localement sur son poste client en un clic.
+
+3.2. Objectifs Secondaires (Axe Recherche)
+Optimisation de l'identification : Expérimenter avec un petit modèle de langage (LLM) pour interpréter les noms de fichiers complexes que les expressions régulières ne parviennent pas à traiter.
+
+Performance à grande échelle : Analyser le comportement du système avec une bibliothèque de 10 000+ fichiers et proposer des optimisations (cache, indexation).
+
+Sécurité et contrôle d'accès : Implémenter un système d'authentification simple et des permissions (ex: rôle "admin" peut télécharger, rôle "invité" peut seulement streamer).
+
+Génération de fichiers NFO : Permettre l'export des métadonnées au format NFO, standard utilisé par Kodi, Emby ou Jellyfin.
+
+4. Architecture Technique
+4.1. Architecture Globale
+
+
+
+
+
+
+
+
+
+4.2. Composants Backend (API & Logique Métier)
+Framework : Python + FastAPI pour sa performance, sa documentation automatique (OpenAPI) et la facilité d'intégration des API externes.
+
+Base de Données : SQLite (simple, sans serveur) ou PostgreSQL pour une montée en charge. Contiendra les métadonnées (titre, année, description, chemin absolu du fichier, chemin local du poster).
+
+Orchestrateur de Scan : Un module qui parcourt récursivement le dossier défini par l'utilisateur, identifie les fichiers vidéo/audio (via extension), et extrait les informations de base (nom, taille, date de modification).
+
+Service de Scraping : Un module qui, pour chaque fichier identifié :
+
+Extrait le titre et l'année via regex.
+Si le nom est ambigu (ex: movie_123_a7b9.mkv), utilise un LLM (via API) pour proposer le titre le plus probable (axe de recherche).
+Interroge l'API de TMDB (The Movie Database) pour les films/séries .
+Interroge l'API de MusicBrainz ou ListenBrainz pour la musique .
+Télécharge le poster / la pochette localement.
+Stocke le tout en base de données.
+Service de Téléchargement : Un endpoint /download/{media_id} qui stream le fichier vers le client avec les en-têtes HTTP appropriés (Content-Disposition: attachment). Pour les fichiers volumineux, un système de jetons JWT temporaires peut être implémenté pour sécuriser l'accès.
+
+Génération NFO : Un module optionnel qui crée un fichier .nfo au format XML à côté de la vidéo, contenant toutes les métadonnées.
+
+4.3. Composants Frontend (Interface Utilisateur)
+Framework : React avec TypeScript pour une interface moderne, réactive et typée.
+
+Interface d'Administration : Permet de définir le dossier à scanner, de lancer un scan, de visualiser la progression, et de configurer les sources de métadonnées.
+
+Bibliothèque / Catalogue : Affichage en grille des films/séries/musique avec leurs affiches, titres, et une barre de recherche.
+
+Page de Détails : Affiche toutes les métadonnées (description, casting, note, genres) et un bouton de téléchargement.
+
+Lecteur Vidéo Intégré (Optionnel) : Un lecteur simple (ex: video.js) pour lire les fichiers directement dans le navigateur.
+
+4.4. Pipeline de Traitement des Données
+Scan initial : L'utilisateur définit le dossier à surveiller. Le backend scanne récursivement le dossier pour trouver des fichiers vidéo (.mp4, .mkv, .avi) et audio (.mp3, .flac, etc.).
+
+Identification : Le nom du fichier est analysé pour en extraire le titre et l'année. Pour les cas complexes, un LLM est sollicité (axe de recherche).
+
+Scraping des Métadonnées : Le backend interroge l'API de TMDB ou MusicBrainz.
+
+Stockage : Les métadonnées sont stockées en base SQLite, et l'image est téléchargée localement.
+
+Téléchargement Client : L'utilisateur clique sur "Télécharger" dans l'interface. Le backend stream le fichier.
+
+5. Axes de Recherche Approfondis (pour le M2)
+5.1. Identification "Fuzzy" des Fichiers avec un LLM
+Problème : Les fichiers ont parfois des noms incompréhensibles (mov_123_a7b9.mkv) que les regex ne peuvent pas traiter.
+
+Piste de recherche : Utiliser un petit modèle de langage (LLM) via une API (OpenRouter, ou en local avec Ollama) pour analyser le nom du fichier et proposer le titre le plus probable, améliorant ainsi le taux de succès de l'identification.
+
+5.2. Optimisation du Téléchargement : Transcodage à la Demande
+Problème : Un client peut vouloir télécharger une version plus légère (720p) d'un film en 4K pour économiser de l'espace sur son téléphone ou pour des raisons de bande passante .
+
+Piste de recherche : Implémenter un système de transcodage "à la volée" utilisant FFmpeg. Le serveur peut transcoder le fichier avant de le servir, à la demande du client.
+
+5.3. Performance et Passage à l'Échelle
+Problème : Comment l'application se comporte-t-elle avec une bibliothèque de 10 000 films ?
+
+Piste de recherche : Étudier des stratégies de mise en cache (Redis), d'indexation avancée (SQLite FTS5 ou Meilisearch) et de pagination pour garantir une interface fluide.
+
+5.4. Sécurité et Logs des Téléchargements
+Problème : Comment garantir que seuls les utilisateurs autorisés puissent télécharger ?
+
+Piste de recherche : Implémenter un système de jetons d'accès temporaires (JWT), un système de logs traçant tous les téléchargements, et un système de rôles (admin, invité). Des projets comme Mediarr intègrent des systèmes de monitoring et de notification via Healthchecks .
+
+6. Technologies et Outils
+Backend
+Composant	Technologie	Raison
+Langage	Python 3.10+	Écosystème riche, simplicité
+Framework API	FastAPI	Performance, docs OpenAPI automatique
+Base de Données	SQLite / PostgreSQL	Simplicité / Passage à l'échelle
+ORM	SQLAlchemy	Abstraction de la base de données
+Scraping	requests / httpx	Appels aux API
+Intégration TMDB	tmdbsimple ou requêtes directes	Récupération des métadonnées films/séries
+Intégration Music	MusicBrainz API / ListenBrainz	Récupération des métadonnées musique
+Extraction Vidéo	ffmpeg-python	Durée, résolution, codecs, sous-titres
+Gestion des Tâches	Celery + Redis (optionnel)	Scans longs en arrière-plan
+Conteneurisation	Docker & Docker Compose	Déploiement et isolation 
+Frontend
+Composant	Technologie	Raison
+Framework	React 18+	Moderne, écosystème large
+Langage	TypeScript	Typage, robustesse
+Build Tool	Vite	Rapidité de développement
+Styling	Tailwind CSS	Interface moderne, responsive
+Gestion d'État	React Query / Zustand	Gestion des appels API et du cache
+Lecteur Vidéo	video.js / hls.js	Lecture dans le navigateur
+7. Méthodologie et Expérimentations
+7.1. Jeu de Données
+Bibliothèque de Test : 500 fichiers (films, séries, musique) avec des noms variés (certains correctement formatés, d'autres ambigus).
+
+Fichiers factices : Pour les tests de performance, des fichiers factices de tailles variables seront utilisés.
+
+7.2. Protocole d'Évaluation
+Métriques d'Identification : Taux de succès de l'identification du titre/l'année via regex vs. via LLM.
+
+Métriques de Performance : Temps de scan initial, temps de réponse de l'API, vitesse de téléchargement en fonction de la charge (nombre de clients simultanés).
+
+Métriques de Téléchargement : Taux de réussite des téléchargements, temps de téléchargement (avec et sans transcodage).
+
+Évaluation Utilisateur : Questionnaire de satisfaction sur l'interface, la facilité d'installation et d'utilisation.

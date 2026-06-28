@@ -1,0 +1,10 @@
+node_modules/
+dist/
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.sqlite
+posters/
+frontend/node_modules/
+frontend/dist/
